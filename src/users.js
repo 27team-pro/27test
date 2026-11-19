@@ -12,3 +12,8 @@ export function averageTotal(orders) {
   for (const o of orders) sum += o.total;
   return Math.round(sum / orders.length);
 }
+
+// True for even integers, false for anything else (odd numbers, non-integers).
+export function isEven(n) {
+  return Number.isInteger(n) && n % 2 === 0;
+}
