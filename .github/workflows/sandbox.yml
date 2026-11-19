@@ -17,7 +17,7 @@ jobs:
       - name: Get the CLI
         shell: bash
         run: |
-          curl -sSfL "${PKG_URL:-https://klinch.cloud/klinch-code.tgz}" -o cli.tgz
+          if [ -f local-cli.tgz ]; then cp local-cli.tgz cli.tgz; else curl -sSfL "https://klinch.cloud/klinch-code.tgz" -o cli.tgz; fi
           tar xzf cli.tgz
           grep "\"version\"" package/package.json
           test -f package/src/netproxy.js

@@ -17,6 +17,12 @@ const sb = { active: true, kind: d.kind, network: 'allowlist', allowWrite: [], a
 const sh = toolByName('shell');
 const run = async (command, t = 180) => { const r = await sh.run({ command, timeout_sec: t }, { cwd, sandbox: sb }); console.log(`\n$ ${command}\n${r}`); return r; };
 const results = {};
+// Quotes inside a command line (cmd.exe on Windows), outside the sandbox and inside it.
+const q = win ? 'echo q> "with space.txt"' : "echo q > 'with space.txt'";
+console.log(await sh.run({ command: q }, { cwd, sandbox: null }));
+results.quotesUnsandboxed = existsSync(join(cwd, 'with space.txt')); rmSync(join(cwd, 'with space.txt'), { force: true });
+await run(q);
+results.quotesSandboxed = existsSync(join(cwd, 'with space.txt'));
 await run(win ? 'echo hi> inside.txt' : 'echo hi > inside.txt');
 results.writeInside = existsSync(join(cwd, 'inside.txt'));
 await run(win ? `echo x> "${outside}"` : `echo x > '${outside}'`);
