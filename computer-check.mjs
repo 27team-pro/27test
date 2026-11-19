@@ -6,6 +6,17 @@ const pkg = resolve(process.argv[2] || 'package');
 const { COMPUTER_TOOL } = await import(pathToFileURL(join(pkg, 'src/computer.js')));
 const run = (input) => COMPUTER_TOOL.run(input, { env: process.env });
 const results = {};
+if (process.platform === 'win32') {
+  // Diagnostics: what PowerShell prints for the size query fed through stdin, as the tool does.
+  const { spawnSync } = await import('node:child_process');
+  const src = await import('node:fs').then((f) => f.readFileSync(join(pkg, 'src/computer.js'), 'utf8'));
+  const prelude = eval('`' + src.split('const WIN_PRELUDE = `')[1].split('`;')[0] + '`');
+  const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', '-'], { input: prelude + '$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; "$($b.Width) $($b.Height)"', encoding: 'utf8' });
+  console.log('STDIN status', r.status, 'OUT', JSON.stringify(r.stdout), 'ERR', JSON.stringify(r.stderr.slice(0, 1500)));
+  const enc = Buffer.from(prelude + '$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; "$($b.Width) $($b.Height)"', 'utf16le').toString('base64');
+  const r2 = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', enc], { encoding: 'utf8' });
+  console.log('ENCODED status', r2.status, 'OUT', JSON.stringify(r2.stdout), 'ERR', JSON.stringify(r2.stderr.slice(0, 1500)));
+}
 const shot = await run({ action: 'screenshot' });
 console.log(shot[0].text, 'jpeg bytes', Buffer.from(shot[1].source.data, 'base64').length);
 results.screenshot = shot[1].source.media_type === 'image/jpeg' && shot[1].source.data.length > 1000;
