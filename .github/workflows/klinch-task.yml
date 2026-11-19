@@ -41,14 +41,16 @@ jobs:
           PROMPT: ${{ inputs.prompt }}
           KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
           KLINCH_MODEL: ${{ inputs.model }}
-      - name: Save result to branch
+      - name: Pack result
         if: always()
         run: |
-          git config user.name klinch-run
-          git config user.email klinch-run@users.noreply.github.com
-          git checkout -b "run/$GITHUB_RUN_ID"
-          find work -name node_modules -prune -o -type f -size +40M -print | xargs -r rm -f
-          printf 'node_modules\n.cache\n' > work/.gitignore
-          git add -f work transcript.jsonl stderr.log exit.txt
-          git commit -qm "klinch-task run $GITHUB_RUN_ID"
-          git push -q origin HEAD
+          mkdir -p result
+          cp transcript.jsonl stderr.log exit.txt result/ 2>/dev/null || true
+          tar --exclude=node_modules --exclude=.cache --exclude='*.log' -czf result/work.tgz work
+          find work -path '*/node_modules' -prune -o -type f \( -name '*.mp4' -o -name '*.png' -o -name '*.gif' -o -name '*.webm' \) -print | xargs -r -I{} cp {} result/
+          ls -la result
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result
+          path: result
