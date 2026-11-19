@@ -1,0 +1,25 @@
+name: sandbox
+on:
+  push:
+    branches: [sandbox-check]
+  workflow_dispatch:
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Get the CLI
+        shell: bash
+        run: |
+          curl -sSfL "${PKG_URL:-https://klinch.cloud/klinch-code.tgz}" -o cli.tgz
+          tar xzf cli.tgz
+          grep "\"version\"" package/package.json
+          test -f package/src/netproxy.js
+      - name: Sandbox check
+        run: node sandbox-check.mjs package
