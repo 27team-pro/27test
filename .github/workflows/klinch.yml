@@ -1,0 +1,64 @@
+# Klinch: ревью каждого PR (ошибки + безопасность) и агент по упоминанию @klinch в PR и issue.
+# Нужен секрет KLINCH_API_KEY: Settings → Secrets and variables → Actions → New repository secret.
+# Без --security ревью стоит примерно вдвое меньше.
+name: Klinch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    concurrency:
+      group: klinch-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g https://klinch.cloud/klinch-code.tgz
+      - run: klinch github review --security
+        env:
+          KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  respond:
+    if: >-
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@klinch')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@klinch')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@klinch')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@klinch') || contains(github.event.issue.title, '@klinch')))
+    runs-on: ubuntu-latest
+    concurrency:
+      group: klinch-respond-${{ github.event.issue.number || github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g https://klinch.cloud/klinch-code.tgz
+      - run: klinch github respond
+        env:
+          KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
