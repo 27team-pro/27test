@@ -34,8 +34,8 @@ jobs:
         run: |
           mkdir -p work && cd work
           set +e
-          klinch -p "$PROMPT" -y --output-format stream-json > ../transcript.jsonl 2> ../stderr.log
-          echo "exit=$?" | tee ../exit.txt
+          klinch -p "$PROMPT" -y --output-format stream-json 2> ../stderr.log | tee ../transcript.jsonl | cut -c1-400
+          echo "exit=${PIPESTATUS[0]}" | tee ../exit.txt
           true
         env:
           PROMPT: ${{ inputs.prompt }}
