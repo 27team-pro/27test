@@ -24,6 +24,7 @@ jobs:
   review:
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
+    environment: 27-test
     concurrency:
       group: klinch-review-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -47,6 +48,7 @@ jobs:
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@klinch')) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@klinch') || contains(github.event.issue.title, '@klinch')))
     runs-on: ubuntu-latest
+    environment: 27-test
     concurrency:
       group: klinch-respond-${{ github.event.issue.number || github.event.pull_request.number }}
       cancel-in-progress: false
