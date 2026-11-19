@@ -62,3 +62,21 @@ jobs:
         env:
           KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # «/agent задача» в issue или PR: облачный агент на сервере с токеном этой задачи, в конце он сам открывает PR.
+  cloud:
+    if: >-
+      github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/agent') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    environment: 27-test
+    timeout-minutes: 120
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g https://klinch.cloud/klinch-code.tgz
+      - run: klinch cloud github-action
+        env:
+          KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

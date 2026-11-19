@@ -1,0 +1,28 @@
+# Облачный агент Klinch из терминала задачи: `klinch cloud "задача"` с токеном этой задачи.
+name: cloud-task
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Задача
+        required: true
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: 27-test
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g https://klinch.cloud/klinch-code.tgz
+      - run: klinch cloud "$TASK" --repo "$GITHUB_REPOSITORY"
+        env:
+          TASK: ${{ inputs.task }}
+          KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
