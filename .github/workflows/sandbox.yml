@@ -23,3 +23,7 @@ jobs:
           test -f package/src/netproxy.js
       - name: Sandbox check
         run: node sandbox-check.mjs package
+      - name: Computer control check
+        if: always()
+        continue-on-error: ${{ matrix.os != 'windows-latest' }}
+        run: node computer-check.mjs package
