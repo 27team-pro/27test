@@ -11,6 +11,10 @@ on:
         description: Откуда ставить Klinch Code
         required: false
         default: https://klinch.cloud/klinch-code.tgz
+      model:
+        description: Модель (KLINCH_MODEL)
+        required: false
+        default: deepseek-v4-pro
 permissions:
   contents: write
 jobs:
@@ -36,6 +40,7 @@ jobs:
         env:
           PROMPT: ${{ inputs.prompt }}
           KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
+          KLINCH_MODEL: ${{ inputs.model }}
       - name: Save result to branch
         if: always()
         run: |
