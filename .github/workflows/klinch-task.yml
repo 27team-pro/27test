@@ -1,0 +1,49 @@
+# Klinch Code сам выполняет задачу по одному промпту (живая проверка «как Claude Code»).
+# Результат (папка work без node_modules, transcript.jsonl) пушится в ветку run/<id>.
+name: klinch-task
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: Промпт для klinch -p
+        required: true
+      tgz:
+        description: Откуда ставить Klinch Code
+        required: false
+        default: https://klinch.cloud/klinch-code.tgz
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+      - run: npm install -g "$TGZ"
+        env:
+          TGZ: ${{ inputs.tgz }}
+      - name: Klinch Code
+        run: |
+          mkdir -p work && cd work
+          set +e
+          klinch -p "$PROMPT" -y --output-format stream-json > ../transcript.jsonl 2> ../stderr.log
+          echo "exit=$?" | tee ../exit.txt
+          true
+        env:
+          PROMPT: ${{ inputs.prompt }}
+          KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
+      - name: Save result to branch
+        if: always()
+        run: |
+          git config user.name klinch-run
+          git config user.email klinch-run@users.noreply.github.com
+          git checkout -b "run/$GITHUB_RUN_ID"
+          find work -name node_modules -prune -o -type f -size +40M -print | xargs -r rm -f
+          printf 'node_modules\n.cache\n' > work/.gitignore
+          git add -f work transcript.jsonl stderr.log exit.txt
+          git commit -qm "klinch-task run $GITHUB_RUN_ID"
+          git push -q origin HEAD
