@@ -1,5 +1,5 @@
 # Klinch Code сам выполняет задачу по одному промпту (живая проверка «как Claude Code»).
-# Результат (папка work без node_modules, transcript.jsonl) пушится в ветку run/<id>.
+# Результат (папка work без node_modules, transcript.jsonl, картинки и видео) — артефакт result.
 name: klinch-task
 on:
   workflow_dispatch:
@@ -15,12 +15,16 @@ on:
         description: Модель (KLINCH_MODEL)
         required: false
         default: deepseek-v4-pro
+      time_limit:
+        description: Бюджет времени агента (к концу он сохраняет результат и пишет итог)
+        required: false
+        default: 140m
 permissions:
   contents: write
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 170
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,14 +37,18 @@ jobs:
       - name: Klinch Code
         run: |
           mkdir -p work && cd work
+          git config --global user.name "klinch-code"
+          git config --global user.email "klinch-code@users.noreply.github.com"
           set +e
-          klinch -p "$PROMPT" -y --output-format stream-json 2> ../stderr.log | tee ../transcript.jsonl | cut -c1-400
+          klinch -p "$PROMPT" -y --time-limit "$TIME_LIMIT" --output-format stream-json 2> ../stderr.log | tee ../transcript.jsonl | cut -c1-400
           echo "exit=${PIPESTATUS[0]}" | tee ../exit.txt
           true
         env:
           PROMPT: ${{ inputs.prompt }}
+          TIME_LIMIT: ${{ inputs.time_limit }}
           KLINCH_API_KEY: ${{ secrets.KLINCH_API_KEY }}
           KLINCH_MODEL: ${{ inputs.model }}
+          GH_TOKEN: ${{ github.token }}
       - name: Pack result
         if: always()
         run: |
